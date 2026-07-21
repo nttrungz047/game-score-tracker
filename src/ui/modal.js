@@ -14,4 +14,5 @@ export function openRoundModal() {
 export function closeRoundModal() {
   document.getElementById('roundModal').classList.add('hidden');
   document.body.style.overflow = 'auto';
+  
 }

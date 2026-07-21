@@ -1,5 +1,5 @@
 import { load, save, data, resetAll } from './state.js';
-import { renderPlayerInputs, addPlayerInput } from './ui/players.js';
+import { renderPlayerInputs, addPlayerInput, initWinModeToggle, renderWinModeToggle } from './ui/players.js';
 import { renderRoundInputs, editRound, deleteRound } from './ui/rounds.js';
 import { renderHistory } from './ui/history.js';
 import { renderDashboard } from './charts.js';
@@ -34,6 +34,7 @@ export function init() {
     if (!confirmed) return;
     resetAll();
     renderPlayerInputs();
+    renderWinModeToggle();
     document.getElementById('setupSection').classList.remove('collapsed');
     document.getElementById('roundSection')?.classList.add('collapsed');
     document.getElementById('roundInputs').innerHTML = '';
@@ -43,7 +44,10 @@ export function init() {
   });
 
   document.getElementById('addRoundButton').addEventListener('click', () => openRoundModal());
-  document.getElementById('closeRoundModal').addEventListener('click', closeRoundModal);
+  document.getElementById('closeRoundModal').addEventListener('click', () => {
+    closeRoundModal();
+    renderRoundInputs(); // Reset inputs when closing modal
+  });
 
   // Close modal on overlay click
   document.getElementById('roundModal').addEventListener('click', (e) => {
@@ -54,6 +58,7 @@ export function init() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !document.getElementById('roundModal').classList.contains('hidden')) {
       closeRoundModal();
+      renderRoundInputs(); // Reset inputs when closing modal
     }
   });
 
@@ -66,6 +71,7 @@ export function init() {
 
   load();
   renderPlayerInputs();
+  initWinModeToggle();
 
   const setupSection = document.getElementById('setupSection');
   const setupPanel = setupSection.querySelector('.panel');

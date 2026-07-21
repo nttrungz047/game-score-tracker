@@ -1,7 +1,7 @@
 import { data, save } from '../state.js';
 import { renderDashboard } from '../charts.js';
 import { renderHistory } from './history.js';
-import { openRoundModal } from './modal.js';
+import { openRoundModal, closeRoundModal } from './modal.js';
 
 export function renderRoundInputs(editIndex = null) {
   const container = document.getElementById('roundInputs');
@@ -15,7 +15,7 @@ export function renderRoundInputs(editIndex = null) {
     row.className = 'flex items-center gap-2';
     row.innerHTML = `
       <span class="flex-1 text-base truncate">${player}</span>
-      <input type="number" min="0" placeholder="Số lá" value="${value}"
+      <input type="number" placeholder="Số điểm" value="${value}"
         class="w-20 bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-base text-center"
         data-player="${player}" />
     `;
@@ -34,14 +34,14 @@ export function submitRound(editIndex = null) {
 
   inputs.forEach(input => {
     const value = input.value.trim();
-    if (value === '' || Number(value) < 0 || Number.isNaN(Number(value))) {
+    if (value === '' || Number.isNaN(Number(value))) {
       valid = false;
     }
     roundData[input.dataset.player] = Number(value);
   });
 
   if (!valid) {
-    alert('Vui lòng nhập số lá hợp lệ (>=0) cho tất cả người chơi');
+    alert('Vui lòng nhập số hợp lệ cho tất cả người chơi (chấp nhận 0 và số âm)');
     return;
   }
 
@@ -55,6 +55,7 @@ export function submitRound(editIndex = null) {
   renderRoundInputs();
   renderDashboard();
   renderHistory();
+  closeRoundModal();
 }
 
 export function editRound(index) {

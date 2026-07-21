@@ -1,7 +1,37 @@
-import { data, save } from '../state.js';
+import { data, save, getWinMode, setWinMode, WIN_MODES } from '../state.js';
 import { renderRoundInputs } from './rounds.js';
 import { renderDashboard } from '../charts.js';
 import { renderHistory } from './history.js';
+
+const ACTIVE_CLASSES = ['bg-amber-500', 'text-slate-900', 'border-amber-500'];
+const INACTIVE_CLASSES = ['bg-slate-800', 'text-slate-300', 'border-slate-600'];
+
+export function renderWinModeToggle() {
+  const ascBtn = document.getElementById('winModeAsc');
+  const descBtn = document.getElementById('winModeDesc');
+  const mode = getWinMode();
+
+  [[ascBtn, WIN_MODES.ASC], [descBtn, WIN_MODES.DESC]].forEach(([btn, btnMode]) => {
+    const isActive = mode === btnMode;
+    btn.classList.remove(...ACTIVE_CLASSES, ...INACTIVE_CLASSES);
+    btn.classList.add(...(isActive ? ACTIVE_CLASSES : INACTIVE_CLASSES));
+  });
+}
+
+export function initWinModeToggle() {
+  document.getElementById('winModeAsc').addEventListener('click', () => {
+    setWinMode(WIN_MODES.ASC);
+    renderWinModeToggle();
+    renderDashboard();
+  });
+  document.getElementById('winModeDesc').addEventListener('click', () => {
+    setWinMode(WIN_MODES.DESC);
+    renderWinModeToggle();
+    renderDashboard();
+  });
+  renderWinModeToggle();
+}
+
 
 export function renderPlayerInputs() {
   const container = document.getElementById('playerInputs');
