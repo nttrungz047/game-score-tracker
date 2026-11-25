@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output and caches
+.next/
+out/
+build/
+dist/
+coverage/
+.cache/
+.turbo/
+.eslintcache
+
+# Generated files
+next-env.d.ts
+*.tsbuildinfo
+
+# Active package-manager lockfile
+package-lock.json
