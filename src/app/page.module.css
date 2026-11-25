@@ -104,6 +104,7 @@
 }
 .cardActions,
 .toolbar,
+.headerActions,
 .dialogActions,
 .shareButtons,
 .tabs,
@@ -115,6 +116,11 @@
 }
 .cardActions {
   margin-top: auto;
+}
+.headerActions {
+  width: 100%;
+  justify-content: flex-start;
+  margin-top: 4px;
 }
 .roundActions {
   display: flex;
@@ -170,16 +176,36 @@
   background: var(--danger);
 }
 .sessionHeader {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title secondary"
+    "meta secondary"
+    "primary primary";
+  align-items: start;
+  column-gap: 24px;
+  row-gap: 10px;
+  margin-bottom: 20px;
 }
 .sessionBackRow {
   margin-bottom: 12px;
 }
 .sessionTitle {
+  grid-area: title;
   flex: 1;
+}
+.sessionHeader > .timestampRow {
+  grid-area: meta;
+  justify-content: flex-start;
+  margin-top: 0;
+}
+.sessionHeader > .cardActions {
+  grid-area: secondary;
+  margin-top: 0;
+  justify-content: flex-end;
+}
+.sessionHeader > .headerActions {
+  grid-area: primary;
 }
 .sessionTitle span {
   color: var(--accent);
@@ -314,6 +340,34 @@
 .chart {
   overflow-x: auto;
 }
+.trendChart {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: 260px;
+  color: var(--muted);
+}
+.trendChart text {
+  fill: var(--muted);
+  font-size: 13px;
+}
+.chartLegend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: var(--muted);
+}
+.chartLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chartLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
 .chartRow {
   display: flex;
   align-items: end;
@@ -430,11 +484,20 @@
     border-radius: 22px;
   }
   .sessionHeader {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "meta"
+      "primary"
+      "secondary";
+    gap: 10px;
+  }
+  .headerActions {
+    width: 100%;
   }
   .sessionHeader .cardActions {
     width: 100%;
+    justify-content: flex-start;
   }
   .roundCard {
     grid-template-columns: 1fr;

@@ -4,6 +4,7 @@ import {
   addPlayer,
   addRound,
   calculateStandings,
+  chartSeries,
   createSession,
   deleteRound,
   duplicateSession,
@@ -55,6 +56,23 @@ test("editing and deleting rounds recalculates totals", () => {
   assert.equal(calculateStandings(session)[0].total, 25);
   session = deleteRound(session, session.rounds[0].id);
   assert.equal(calculateStandings(session)[0].total, 0);
+});
+
+test("chart series tracks cumulative totals by stable player ID", () => {
+  let session = createSession({
+    name: "Friday",
+    gameName: "Cards",
+    unitName: "points",
+    playerNames: ["An", "Binh"],
+  });
+  const [an, binh] = session.players;
+  session = addRound(session, { [an.id]: 5, [binh.id]: 2 });
+  session = addRound(session, { [an.id]: -1, [binh.id]: 8 });
+
+  assert.deepEqual(chartSeries(session), [
+    { round: 1, totals: { [an.id]: 5, [binh.id]: 2 } },
+    { round: 2, totals: { [an.id]: 4, [binh.id]: 10 } },
+  ]);
 });
 
 test("duplicate preserves configuration and players but drops history", () => {

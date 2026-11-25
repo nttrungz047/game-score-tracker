@@ -42,11 +42,12 @@ import styles from "./page.module.css";
 function makeImage(
   session: GameSession,
   standings: ReturnType<typeof calculateStandings>,
+  locale: Locale,
 ): Promise<Blob> {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     canvas.width = 900;
-    canvas.height = 180 + standings.length * 70;
+    canvas.height = 250 + Math.max(standings.length, 1) * 70;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       resolve(new Blob());
@@ -59,13 +60,28 @@ function makeImage(
     ctx.fillText(session.gameName || session.name, 48, 60);
     ctx.font = "20px Arial";
     ctx.fillStyle = "#a5b4fc";
+    const t = resources[locale];
     ctx.fillText(
-      `${session.name} · ${session.rounds.length} ${resources.en.roundCount}`,
+      `${session.name} · ${session.rounds.length} ${t.roundCount}`,
       48,
       98,
     );
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "#c7d2fe";
+    ctx.fillText(
+      `${t.createdAt}: ${formatDateTime(new Date().toISOString())}`,
+      48,
+      130,
+    );
+    ctx.font = "bold 17px Arial";
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillText("#", 52, 205);
+    ctx.fillText(t.players, 130, 205);
+    ctx.textAlign = "right";
+    ctx.fillText(t.metricTotal, 840, 205);
+    ctx.textAlign = "left";
     standings.forEach((player, index) => {
-      const y = 155 + index * 70;
+      const y = 245 + index * 70;
       ctx.fillStyle = index === 0 ? "#fbbf24" : "#e5e7eb";
       ctx.font = "bold 25px Arial";
       ctx.fillText(`#${player.rank}`, 52, y);
@@ -76,6 +92,11 @@ function makeImage(
       ctx.fillText(`${player.total} ${session.unitName}`, 840, y);
       ctx.textAlign = "left";
     });
+    if (standings.length === 0) {
+      ctx.fillStyle = "#e5e7eb";
+      ctx.font = "24px Arial";
+      ctx.fillText(t.noRounds, 52, 245);
+    }
     canvas.toBlob((blob) => resolve(blob ?? new Blob()), "image/png");
   });
 }
@@ -424,14 +445,22 @@ function SessionView({
             {t.delete}
           </button>
         </div>
-      </div>
-      <div className={styles.timestampRow}>
-        <small>
-          {t.createdAt}: {formatDateTime(session.createdAt)}
-        </small>
-        <small>
-          {t.updatedAt}: {formatDateTime(session.updatedAt)}
-        </small>
+        <div className={styles.timestampRow}>
+          <small>
+            {t.createdAt}: {formatDateTime(session.createdAt)}
+          </small>
+          <small>
+            {t.updatedAt}: {formatDateTime(session.updatedAt)}
+          </small>
+        </div>
+        <div className={styles.headerActions}>
+          <button className={styles.primary} onClick={() => setShowRound(true)}>
+            <Plus size={18} aria-hidden="true" /> {t.addRound}
+          </button>
+          <button onClick={() => setShowShare(true)}>
+            <Share2 size={16} aria-hidden="true" /> {t.share}
+          </button>
+        </div>
       </div>
       <div className={styles.tabs}>
         <button
@@ -467,17 +496,6 @@ function SessionView({
                 <small>{session.unitName}</small>
               </div>
             ))}
-          </div>
-          <div className={styles.toolbar}>
-            <button
-              className={styles.primary}
-              onClick={() => setShowRound(true)}
-            >
-              <Plus size={18} aria-hidden="true" /> {t.addRound}
-            </button>
-            <button onClick={() => setShowShare(true)}>
-              <Share2 size={16} aria-hidden="true" /> {t.share}
-            </button>
           </div>
           <div className={styles.metrics} aria-label={t.ranking}>
             <div className={styles.metricCard}>
@@ -604,6 +622,7 @@ function SessionView({
         <ShareDialog
           session={session}
           standings={standings}
+          locale={locale}
           t={t}
           onClose={() => setShowShare(false)}
         />
@@ -761,6 +780,11 @@ function Chart({
     ...series.flatMap((point) => Object.values(point.totals)),
     0,
   );
+  const colors = ["#7c3aed", "#0ea5e9", "#f97316", "#10b981"];
+  const chartWidth = Math.max(560, series.length * 90 + 80);
+  const xFor = (index: number) =>
+    40 + index * ((chartWidth - 80) / Math.max(series.length - 1, 1));
+  const yFor = (value: number) => 220 - (value / max) * 180;
   return (
     <div className={styles.panel}>
       <h2>{t.chart}</h2>
@@ -768,41 +792,66 @@ function Chart({
         <div className={styles.empty}>{t.noRounds}</div>
       ) : (
         <div className={styles.chart}>
-          {standings.map((player, index) => (
-            <div key={player.id} className={styles.chartRow}>
-              <span
-                style={{
-                  color: ["#7c3aed", "#0ea5e9", "#f97316", "#10b981"][
-                    index % 4
-                  ],
-                }}
+          <svg
+            className={styles.trendChart}
+            viewBox={`0 0 ${chartWidth} 260`}
+            role="img"
+            aria-label={t.chart}
+          >
+            <line
+              x1="40"
+              y1="220"
+              x2={chartWidth - 40}
+              y2="220"
+              stroke="currentColor"
+            />
+            {standings.map((player, index) => {
+              const color = colors[index % colors.length];
+              const points = series
+                .map(
+                  (point, pointIndex) =>
+                    `${xFor(pointIndex)},${yFor(point.totals[player.id] ?? 0)}`,
+                )
+                .join(" ");
+              return (
+                <g key={player.id}>
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {series.map((point, pointIndex) => (
+                    <circle
+                      key={`${player.id}-${point.round}`}
+                      cx={xFor(pointIndex)}
+                      cy={yFor(point.totals[player.id] ?? 0)}
+                      r="5"
+                      fill={color}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+            {series.map((point, index) => (
+              <text
+                key={point.round}
+                x={xFor(index)}
+                y="248"
+                textAnchor="middle"
               >
+                {point.round}
+              </text>
+            ))}
+          </svg>
+          <div className={styles.chartLegend}>
+            {standings.map((player, index) => (
+              <span key={player.id}>
+                <i style={{ background: colors[index % colors.length] }} />{" "}
                 {player.name}
               </span>
-              <div className={styles.bars}>
-                {series.map((point) => (
-                  <div className={styles.barWrap} key={point.round}>
-                    <div
-                      className={styles.bar}
-                      style={{
-                        height: `${Math.max(4, ((point.totals[player.id] ?? 0) / max) * 150)}px`,
-                        background: [
-                          "#7c3aed",
-                          "#0ea5e9",
-                          "#f97316",
-                          "#10b981",
-                        ][index % 4],
-                      }}
-                    />
-                    <small>{point.totals[player.id] ?? 0}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className={styles.axis}>
-            {series.map((point) => (
-              <span key={point.round}>{point.round}</span>
             ))}
           </div>
         </div>
@@ -814,19 +863,21 @@ function Chart({
 function ShareDialog({
   session,
   standings,
+  locale,
   t,
   onClose,
 }: {
   session: GameSession;
   standings: ReturnType<typeof calculateStandings>;
+  locale: Locale;
   t: Resources;
   onClose: () => void;
 }) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [message, setMessage] = useState("");
   useEffect(() => {
-    makeImage(session, standings).then(setBlob);
-  }, [session, standings]);
+    makeImage(session, standings, locale).then(setBlob);
+  }, [session, standings, locale]);
   function download() {
     if (!blob) return;
     const url = URL.createObjectURL(blob);
