@@ -13,6 +13,7 @@ import {
   GameSession,
   Locale,
   removePlayer as removePlayerFromSession,
+  renameSession,
   renamePlayer,
   Theme,
   updateRound,
@@ -21,7 +22,7 @@ import { readStore, resetStore, writeStore } from "@/lib/storage";
 import { resources } from "@/lib/resources";
 import type { Resources } from "@/lib/resources";
 import { ConfirmModal } from "@/components/ConfirmModal";
-import { Dialog, formatDateTime } from "@/components/scoreboard/elements";
+import { Dialog } from "@/components/scoreboard/elements";
 import { SessionList } from "@/components/scoreboard/SessionList";
 import {
   ArrowLeft,
@@ -51,7 +52,10 @@ function makeImage(
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");
     canvas.width = 900;
-    canvas.height = 250 + Math.max(standings.length, 1) * 70;
+    const tableHeaderY = 158;
+    const rowStartY = 196;
+    const rowGap = 64;
+    canvas.height = rowStartY + Math.max(standings.length, 1) * rowGap + 34;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       resolve(new Blob());
@@ -70,27 +74,15 @@ function makeImage(
       48,
       98,
     );
-    ctx.font = "18px Arial";
-    ctx.fillStyle = "#c7d2fe";
-    ctx.fillText(
-      `${t.createdAt}: ${formatDateTime(session.createdAt)}`,
-      48,
-      130,
-    );
-    ctx.fillText(
-      `${t.updatedAt}: ${formatDateTime(session.updatedAt)}`,
-      48,
-      158,
-    );
     ctx.font = "bold 17px Arial";
     ctx.fillStyle = "#cbd5e1";
-    ctx.fillText("#", 52, 220);
-    ctx.fillText(t.players, 130, 220);
+    ctx.fillText("#", 52, tableHeaderY);
+    ctx.fillText(t.players, 130, tableHeaderY);
     ctx.textAlign = "right";
-    ctx.fillText(t.metricTotal, 840, 220);
+    ctx.fillText(t.metricTotal, 840, tableHeaderY);
     ctx.textAlign = "left";
     standings.forEach((player, index) => {
-      const y = 260 + index * 70;
+      const y = rowStartY + index * rowGap;
       ctx.fillStyle = index === 0 ? "#fbbf24" : "#e5e7eb";
       ctx.font = "bold 25px Arial";
       ctx.fillText(`#${player.rank}`, 52, y);
@@ -104,7 +96,7 @@ function makeImage(
     if (standings.length === 0) {
       ctx.fillStyle = "#e5e7eb";
       ctx.font = "24px Arial";
-      ctx.fillText(t.noRounds, 52, 260);
+      ctx.fillText(t.noRounds, 52, rowStartY);
     }
     canvas.toBlob((blob) => resolve(blob ?? new Blob()), "image/png");
   });
@@ -237,14 +229,6 @@ export default function Home() {
                     <Trash2 size={15} aria-hidden="true" />
                     {t.delete}
                   </button>
-                </div>
-                <div className={styles.timestampRow}>
-                  <small>
-                    {t.createdAt}: {formatDateTime(session.createdAt)}
-                  </small>
-                  <small>
-                    {t.updatedAt}: {formatDateTime(session.updatedAt)}
-                  </small>
                 </div>
               </article>
             ))}
@@ -417,6 +401,8 @@ function SessionView({
   const [playerName, setPlayerName] = useState("");
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editingPlayerName, setEditingPlayerName] = useState("");
+  const [editingSessionName, setEditingSessionName] = useState(false);
+  const [draftSessionName, setDraftSessionName] = useState(session.name);
   const metrics = calculateSessionMetrics(session);
   function addPlayer() {
     if (
@@ -445,6 +431,16 @@ function SessionView({
     setEditingPlayerId(null);
     setEditingPlayerName("");
   }
+  function startSessionRename() {
+    setDraftSessionName(session.name);
+    setEditingSessionName(true);
+  }
+  function saveSessionRename() {
+    const next = renameSession(session, draftSessionName);
+    if (next === session) return;
+    updateSession(next);
+    setEditingSessionName(false);
+  }
   return (
     <section className={styles.sessionPage}>
       <div className={styles.sessionBackRow}>
@@ -455,7 +451,39 @@ function SessionView({
       <div className={styles.sessionHeader}>
         <div className={styles.sessionTitle}>
           {/* <span>{session.gameName || t.defaultGame}</span> */}
-          <h1>{session.name}</h1>
+          {editingSessionName ? (
+            <div className={styles.inlineEdit}>
+              <input
+                value={draftSessionName}
+                onChange={(event) => setDraftSessionName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveSessionRename();
+                  if (event.key === "Escape") setEditingSessionName(false);
+                }}
+                aria-label={t.name}
+                autoFocus
+              />
+              <button onClick={saveSessionRename} aria-label={t.save}>
+                <Check size={16} aria-hidden="true" />
+              </button>
+              <button
+                onClick={() => setEditingSessionName(false)}
+                aria-label={t.cancel}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.settingsValue}>
+              <h1>{session.name}</h1>
+              <button
+                onClick={startSessionRename}
+                aria-label={`${t.edit} ${t.name}`}
+              >
+                <Pencil size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <small>
             {session.players.length} {t.players.toLocaleLowerCase()} ·{" "}
             {session.rounds.length} {t.roundCount}
@@ -474,14 +502,6 @@ function SessionView({
             <Share2 size={16} aria-hidden="true" />
             {t.share}
           </button>
-        </div>
-        <div className={styles.timestampRow}>
-          <small>
-            {t.createdAt}: {formatDateTime(session.createdAt)}
-          </small>
-          <small>
-            {t.updatedAt}: {formatDateTime(session.updatedAt)}
-          </small>
         </div>
         <div className={styles.headerActions}>
           <button className={styles.primary} onClick={() => setShowRound(true)}>
@@ -775,14 +795,6 @@ function History({
                 >
                   <Trash2 size={16} aria-hidden="true" />
                 </button>
-              </div>
-              <div className={styles.timestampRow}>
-                <small>
-                  {t.createdAt}: {formatDateTime(round.createdAt)}
-                </small>
-                <small>
-                  {t.updatedAt}: {formatDateTime(round.updatedAt)}
-                </small>
               </div>
             </div>
           </article>

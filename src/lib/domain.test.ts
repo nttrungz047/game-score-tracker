@@ -8,6 +8,7 @@ import {
   createSession,
   deleteRound,
   duplicateSession,
+  renameSession,
   removePlayer,
   updateRound,
 } from "./domain.ts";
@@ -104,6 +105,24 @@ test("duplicate preserves configuration and players but drops history", () => {
   const copyTimestamp = Date.parse(copy.createdAt);
   assert.ok(copyTimestamp >= before && copyTimestamp <= after);
   assert.deepEqual(session, sourceBeforeDuplicate);
+});
+
+test("renaming a session updates its name and timestamp immutably", () => {
+  const session = createSession({
+    name: "Original",
+    gameName: "Cards",
+    unitName: "points",
+    playerNames: [],
+  });
+  const before = Date.now();
+  const renamed = renameSession(session, "  Renamed  ");
+  const after = Date.now();
+
+  assert.equal(renamed.name, "Renamed");
+  assert.notEqual(renamed, session);
+  assert.equal(session.name, "Original");
+  assert.ok(Date.parse(renamed.updatedAt) >= before);
+  assert.ok(Date.parse(renamed.updatedAt) <= after);
 });
 
 test("player changes preserve IDs and remove score entries immutably", () => {

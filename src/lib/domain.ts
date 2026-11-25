@@ -204,6 +204,16 @@ export function duplicateSession(session: GameSession): GameSession {
   };
 }
 
+export function renameSession(session: GameSession, name: string): GameSession {
+  const trimmed = name.trim();
+  if (!trimmed) return session;
+  return {
+    ...session,
+    name: trimmed,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function addPlayer(session: GameSession, name: string): GameSession {
   const trimmed = name.trim();
   if (

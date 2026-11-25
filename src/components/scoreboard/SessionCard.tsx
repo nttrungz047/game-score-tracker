@@ -4,7 +4,6 @@ import { Copy, Eye, Trash2 } from "lucide-react";
 import type { GameSession } from "@/lib/domain";
 import type { Resources } from "@/lib/resources";
 import styles from "@/app/page.module.css";
-import { formatDateTime } from "./elements";
 
 type SessionCardProps = {
   session: GameSession;
@@ -40,14 +39,6 @@ export function SessionCard({
         <button onClick={onDelete}>
           <Trash2 size={15} aria-hidden="true" /> {t.delete}
         </button>
-      </div>
-      <div className={styles.timestampRow}>
-        <small>
-          {t.createdAt}: {formatDateTime(session.createdAt)}
-        </small>
-        <small>
-          {t.updatedAt}: {formatDateTime(session.updatedAt)}
-        </small>
       </div>
     </article>
   );
