@@ -21,6 +21,8 @@ import { readStore, resetStore, writeStore } from "@/lib/storage";
 import { resources } from "@/lib/resources";
 import type { Resources } from "@/lib/resources";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { Dialog, formatDateTime } from "@/components/scoreboard/elements";
+import { SessionList } from "@/components/scoreboard/SessionList";
 import {
   ArrowLeft,
   Check,
@@ -37,7 +39,9 @@ import {
   Trophy,
   X,
 } from "lucide-react";
-import styles from "./page.module.css";
+import pageStyles from "./page.module.css";
+
+const styles = pageStyles;
 
 function makeImage(
   session: GameSession,
@@ -69,19 +73,24 @@ function makeImage(
     ctx.font = "18px Arial";
     ctx.fillStyle = "#c7d2fe";
     ctx.fillText(
-      `${t.createdAt}: ${formatDateTime(new Date().toISOString())}`,
+      `${t.createdAt}: ${formatDateTime(session.createdAt)}`,
       48,
       130,
     );
+    ctx.fillText(
+      `${t.updatedAt}: ${formatDateTime(session.updatedAt)}`,
+      48,
+      158,
+    );
     ctx.font = "bold 17px Arial";
     ctx.fillStyle = "#cbd5e1";
-    ctx.fillText("#", 52, 205);
-    ctx.fillText(t.players, 130, 205);
+    ctx.fillText("#", 52, 220);
+    ctx.fillText(t.players, 130, 220);
     ctx.textAlign = "right";
-    ctx.fillText(t.metricTotal, 840, 205);
+    ctx.fillText(t.metricTotal, 840, 220);
     ctx.textAlign = "left";
     standings.forEach((player, index) => {
-      const y = 245 + index * 70;
+      const y = 260 + index * 70;
       ctx.fillStyle = index === 0 ? "#fbbf24" : "#e5e7eb";
       ctx.font = "bold 25px Arial";
       ctx.fillText(`#${player.rank}`, 52, y);
@@ -95,16 +104,10 @@ function makeImage(
     if (standings.length === 0) {
       ctx.fillStyle = "#e5e7eb";
       ctx.font = "24px Arial";
-      ctx.fillText(t.noRounds, 52, 245);
+      ctx.fillText(t.noRounds, 52, 260);
     }
     canvas.toBlob((blob) => resolve(blob ?? new Blob()), "image/png");
   });
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function Home() {
@@ -112,6 +115,7 @@ export default function Home() {
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [locale, setLocale] = useState<Locale>("vi");
   const [theme, setTheme] = useState<Theme>("system");
+  const [defaultUnit, setDefaultUnit] = useState(resources.vi.defaultUnit);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [view, setView] = useState<"score" | "history" | "chart">("score");
   const [showCreate, setShowCreate] = useState(false);
@@ -201,7 +205,13 @@ export default function Home() {
               <Plus size={18} aria-hidden="true" /> {t.newSession}
             </button>
           </div>
-          <div className={styles.sessionGrid}>
+        <SessionList
+          sessions={sessions}
+          resources={t}
+          onOpen={setActiveId}
+          onDuplicate={duplicate}
+          onDelete={removeSession}
+        >
             {sessions.map((session) => (
               <article className={styles.sessionCard} key={session.id}>
                 <div>
@@ -238,8 +248,8 @@ export default function Home() {
                 </div>
               </article>
             ))}
-          </div>
-        </section>
+        </SessionList>
+      </section>
       ) : (
         <SessionView
           session={active}
@@ -260,6 +270,7 @@ export default function Home() {
       {showCreate && (
         <CreateDialog
           t={t}
+          defaultUnit={defaultUnit}
           onClose={() => setShowCreate(false)}
           onCreate={(session) => {
             setSessions((items) => [...items, session]);
@@ -273,8 +284,21 @@ export default function Home() {
           t={t}
           locale={locale}
           theme={theme}
+          unitName={active?.unitName ?? defaultUnit}
           setLocale={setLocale}
           setTheme={setTheme}
+          setUnitName={(unitName) => {
+            const nextUnit = unitName.trim() || t.defaultUnit;
+            if (!active) {
+              setDefaultUnit(nextUnit);
+              return;
+            }
+            updateSession({
+              ...active,
+              unitName: nextUnit,
+              updatedAt: new Date().toISOString(),
+            });
+          }}
           onReset={resetAll}
           onClose={() => setShowSettings(false)}
         />
@@ -295,15 +319,17 @@ export default function Home() {
 
 function CreateDialog({
   t,
+  defaultUnit,
   onClose,
   onCreate,
 }: {
   t: Resources;
+  defaultUnit: string;
   onClose: () => void;
   onCreate: (session: GameSession) => void;
 }) {
   const [gameName, setGameName] = useState("");
-  const [unitName, setUnitName] = useState(t.defaultUnit);
+  const [unitName, setUnitName] = useState(defaultUnit);
   const [players, setPlayers] = useState("");
   function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -444,6 +470,10 @@ function SessionView({
             <Trash2 size={15} aria-hidden="true" />
             {t.delete}
           </button>
+          <button onClick={() => setShowShare(true)}>
+            <Share2 size={16} aria-hidden="true" />
+            {t.share}
+          </button>
         </div>
         <div className={styles.timestampRow}>
           <small>
@@ -456,9 +486,6 @@ function SessionView({
         <div className={styles.headerActions}>
           <button className={styles.primary} onClick={() => setShowRound(true)}>
             <Plus size={18} aria-hidden="true" /> {t.addRound}
-          </button>
-          <button onClick={() => setShowShare(true)}>
-            <Share2 size={16} aria-hidden="true" /> {t.share}
           </button>
         </div>
       </div>
@@ -712,6 +739,7 @@ function History({
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+
   return (
     <div className={styles.history}>
       {session.rounds.length === 0 ? (
@@ -775,13 +803,15 @@ function Chart({
   t: Resources;
 }) {
   const series = chartSeries(session);
+  const [zoom, setZoom] = useState(1);
   const max = Math.max(
     1,
     ...series.flatMap((point) => Object.values(point.totals)),
     0,
   );
   const colors = ["#7c3aed", "#0ea5e9", "#f97316", "#10b981"];
-  const chartWidth = Math.max(560, series.length * 90 + 80);
+  const chartWidth = Math.max(480, series.length * 64 + 80);
+  const displayWidth = chartWidth * zoom;
   const xFor = (index: number) =>
     40 + index * ((chartWidth - 80) / Math.max(series.length - 1, 1));
   const yFor = (value: number) => 220 - (value / max) * 180;
@@ -791,9 +821,39 @@ function Chart({
       {series.length === 0 ? (
         <div className={styles.empty}>{t.noRounds}</div>
       ) : (
-        <div className={styles.chart}>
+        <div
+          className={`${styles.chart} ${zoom > 1 ? styles.chartZoomed : ""}`}
+        >
+          <div className={styles.chartControls}>
+            <button
+              type="button"
+              onClick={() => setZoom((value) => Math.max(1, value - 0.25))}
+              disabled={zoom === 1}
+              aria-label={t.chart}
+            >
+              −
+            </button>
+            <span>{Math.round(zoom * 100)}%</span>
+            <button
+              type="button"
+              onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
+              disabled={zoom === 2}
+              aria-label={t.chart}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              disabled={zoom === 1}
+              aria-label={t.chart}
+            >
+              100%
+            </button>
+          </div>
           <svg
             className={styles.trendChart}
+            style={{ width: `${displayWidth}px` }}
             viewBox={`0 0 ${chartWidth} 260`}
             role="img"
             aria-label={t.chart}
@@ -920,19 +980,26 @@ function SettingsDialog({
   t,
   locale,
   theme,
+  unitName,
   setLocale,
   setTheme,
+  setUnitName,
   onReset,
   onClose,
 }: {
   t: Resources;
   locale: Locale;
   theme: Theme;
+  unitName: string | null;
   setLocale: (value: Locale) => void;
   setTheme: (value: Theme) => void;
+  setUnitName: (value: string) => void;
   onReset: () => void;
   onClose: () => void;
 }) {
+  const [editingUnit, setEditingUnit] = useState(false);
+  const [draftUnit, setDraftUnit] = useState(unitName ?? "");
+
   return (
     <Dialog title={t.settings} onClose={onClose}>
       <div className={styles.form}>
@@ -957,6 +1024,51 @@ function SettingsDialog({
             <option value="dark">{t.dark}</option>
           </select>
         </label>
+        {unitName !== null && (
+          <div className={styles.settingsField}>
+            <span>{t.unit}</span>
+            {editingUnit ? (
+              <div className={styles.inlineEdit}>
+                <input
+                  value={draftUnit}
+                  onChange={(event) => setDraftUnit(event.target.value)}
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    setUnitName(draftUnit);
+                    setEditingUnit(false);
+                  }}
+                  aria-label={t.save}
+                >
+                  <Check size={16} aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => {
+                    setDraftUnit(unitName);
+                    setEditingUnit(false);
+                  }}
+                  aria-label={t.cancel}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <div className={styles.settingsValue}>
+                <span>{unitName}</span>
+                <button
+                  onClick={() => {
+                    setDraftUnit(unitName);
+                    setEditingUnit(true);
+                  }}
+                  aria-label={`${t.edit} ${t.unit}`}
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <button className={styles.dangerButton} onClick={onReset}>
           <RotateCcw size={16} aria-hidden="true" />
           {t.reset}
@@ -966,26 +1078,3 @@ function SettingsDialog({
   );
 }
 
-function Dialog({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className={styles.overlay} role="dialog" aria-modal="true">
-      <div className={styles.dialog}>
-        <div className={styles.dialogHeader}>
-          <h2>{title}</h2>
-          <button onClick={onClose} aria-label={resources.en.close}>
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}

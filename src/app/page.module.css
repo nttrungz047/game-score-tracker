@@ -122,6 +122,9 @@
   justify-content: flex-start;
   margin-top: 4px;
 }
+.headerActions button {
+  width: 100%;
+}
 .roundActions {
   display: flex;
   flex-direction: row;
@@ -251,9 +254,11 @@
   color: var(--muted);
 }
 .scoreCard b {
+  align-self: center;
   font-size: 38px;
 }
 .scoreCard small {
+  align-self: center;
   color: var(--muted);
 }
 .winner {
@@ -338,13 +343,36 @@
   color: var(--muted);
 }
 .chart {
+  overflow: hidden;
+}
+.chartZoomed {
   overflow-x: auto;
+}
+.chartZoomed .trendChart {
+  max-width: none;
+}
+.chartControls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.chartControls button {
+  min-width: 36px;
+  padding: 6px 9px;
+}
+.chartControls span {
+  min-width: 48px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
 }
 .trendChart {
   display: block;
   width: 100%;
-  min-width: 560px;
-  height: 260px;
+  max-width: 100%;
+  height: 220px;
   color: var(--muted);
 }
 .trendChart text {
@@ -457,6 +485,20 @@
 .form label select {
   font-weight: 400;
 }
+.settingsField {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+.settingsValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+.settingsValue > span {
+  flex: 1;
+}
 .dialogActions {
   justify-content: flex-end;
   margin-top: 8px;
@@ -526,5 +568,8 @@
   }
   .scoreCard b {
     font-size: 30px;
+  }
+  .trendChart {
+    height: 190px;
   }
 }
