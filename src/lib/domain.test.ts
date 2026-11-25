@@ -86,7 +86,10 @@ test("duplicate preserves configuration and players but drops history", () => {
     [session.players[0].id]: 5,
     [session.players[1].id]: 3,
   });
+  const sourceBeforeDuplicate = structuredClone(session);
+  const before = Date.now();
   const copy = duplicateSession(session);
+  const after = Date.now();
   assert.equal(copy.gameName, session.gameName);
   assert.equal(copy.unitName, session.unitName);
   assert.deepEqual(
@@ -96,6 +99,11 @@ test("duplicate preserves configuration and players but drops history", () => {
   assert.equal(copy.rounds.length, 0);
   assert.notEqual(copy.id, session.id);
   assert.notEqual(copy.players[0].id, session.players[0].id);
+  assert.equal(copy.createdAt, copy.updatedAt);
+  assert.ok(copy.createdAt);
+  const copyTimestamp = Date.parse(copy.createdAt);
+  assert.ok(copyTimestamp >= before && copyTimestamp <= after);
+  assert.deepEqual(session, sourceBeforeDuplicate);
 });
 
 test("player changes preserve IDs and remove score entries immutably", () => {

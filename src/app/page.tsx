@@ -205,13 +205,13 @@ export default function Home() {
               <Plus size={18} aria-hidden="true" /> {t.newSession}
             </button>
           </div>
-        <SessionList
-          sessions={sessions}
-          resources={t}
-          onOpen={setActiveId}
-          onDuplicate={duplicate}
-          onDelete={removeSession}
-        >
+          <SessionList
+            sessions={sessions}
+            resources={t}
+            onOpen={setActiveId}
+            onDuplicate={duplicate}
+            onDelete={removeSession}
+          >
             {sessions.map((session) => (
               <article className={styles.sessionCard} key={session.id}>
                 <div>
@@ -248,8 +248,8 @@ export default function Home() {
                 </div>
               </article>
             ))}
-        </SessionList>
-      </section>
+          </SessionList>
+        </section>
       ) : (
         <SessionView
           session={active}
@@ -739,7 +739,6 @@ function History({
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-
   return (
     <div className={styles.history}>
       {session.rounds.length === 0 ? (
@@ -1077,4 +1076,3 @@ function SettingsDialog({
     </Dialog>
   );
 }
-

@@ -14,13 +14,19 @@ type SessionCardProps = {
   onDelete: () => void;
 };
 
-export function SessionCard({ session, resources: t, onOpen, onDuplicate, onDelete }: SessionCardProps) {
+export function SessionCard({
+  session,
+  resources: t,
+  onOpen,
+  onDuplicate,
+  onDelete,
+}: SessionCardProps) {
   return (
     <article className={styles.sessionCard}>
       <div>
         <h2>{session.name}</h2>
         <p>
-          {session.players.length} {t.players.toLocaleLowerCase()} · {" "}
+          {session.players.length} {t.players.toLocaleLowerCase()} ·{" "}
           {session.rounds.length} {t.roundCount}
         </p>
       </div>
@@ -36,8 +42,12 @@ export function SessionCard({ session, resources: t, onOpen, onDuplicate, onDele
         </button>
       </div>
       <div className={styles.timestampRow}>
-        <small>{t.createdAt}: {formatDateTime(session.createdAt)}</small>
-        <small>{t.updatedAt}: {formatDateTime(session.updatedAt)}</small>
+        <small>
+          {t.createdAt}: {formatDateTime(session.createdAt)}
+        </small>
+        <small>
+          {t.updatedAt}: {formatDateTime(session.updatedAt)}
+        </small>
       </div>
     </article>
   );

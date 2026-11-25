@@ -15,7 +15,14 @@ type SessionListProps = {
   children?: ReactNode;
 };
 
-export function SessionList({ sessions, resources: t, onOpen, onDuplicate, onDelete, children }: SessionListProps) {
+export function SessionList({
+  sessions,
+  resources: t,
+  onOpen,
+  onDuplicate,
+  onDelete,
+  children,
+}: SessionListProps) {
   if (children) return <div className={styles.sessionGrid}>{children}</div>;
 
   return (
